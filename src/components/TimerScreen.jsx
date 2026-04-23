@@ -88,8 +88,19 @@ const TimerScreen = () => {
     }
   };
 
+  // Initialize AudioContext (iOS requires user interaction)
+  const initAudioContext = () => {
+    if (!audioContextRef.current) {
+      audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    // Resume AudioContext (required for iOS)
+    if (audioContextRef.current.state === 'suspended') {
+      audioContextRef.current.resume();
+    }
+  };
+
   // Play countdown beep at 3, 2, 1 seconds
-  const playCountdownBeep = () => {
+  const playCountdownBeep = async () => {
     // Check if sounds are enabled
     const currentSettings = getUserSettings();
     if (!currentSettings.preferences.timerSoundsEnabled) return;
@@ -100,6 +111,12 @@ const TimerScreen = () => {
       }
       
       const audioContext = audioContextRef.current;
+      
+      // Resume context if suspended (iOS requirement)
+      if (audioContext.state === 'suspended') {
+        await audioContext.resume();
+      }
+      
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
       
@@ -120,7 +137,7 @@ const TimerScreen = () => {
   };
 
   // Play completion beep (triple beep)
-  const playCompletionBeep = () => {
+  const playCompletionBeep = async () => {
     // Check if sounds are enabled
     const currentSettings = getUserSettings();
     if (!currentSettings.preferences.timerSoundsEnabled) return;
@@ -131,6 +148,11 @@ const TimerScreen = () => {
       }
       
       const audioContext = audioContextRef.current;
+      
+      // Resume context if suspended (iOS requirement)
+      if (audioContext.state === 'suspended') {
+        await audioContext.resume();
+      }
       
       // Play three beeps
       [0, 200, 400].forEach((delay, index) => {
@@ -263,6 +285,9 @@ const TimerScreen = () => {
 
   // Event handlers
   const handleStart = async () => {
+    // Initialize audio context on user interaction (required for iOS)
+    initAudioContext();
+    
     // Request notification permission if not already granted
     if (!notificationsEnabled && 'Notification' in window) {
       await requestNotificationPermission();
